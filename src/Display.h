@@ -13,6 +13,25 @@ private:
     static uint8_t spinnerIndex;
     static const char spinnerChars[];
     static const char arrows[];
+    char currentMessage[15]; // Maximum length of the message
+    bool messageWritten = false;
+    uint64_t scrollSpeed = 500;
+    unsigned long lastUpdateTime = 0;
+    unsigned long displayStartTime = 0;
+    int startCharIndex = 0;
+    int charsWritten = 0;
+    int displayLength = 9; // Number of characters to display at a time
+    uint16_t holdOffScrollTime = 3000;   // Time to hold the message in milliseconds
+
+    char previousMessage[20] = "";
+
+    const char *stateTitleMap[6] = {
+        "off",
+        "sleep",
+        "starting",
+        "running",
+        "shutting down",
+        "restarting"};
 
     byte customBackslash[8] = {
         B00000,
@@ -71,7 +90,10 @@ public:
     void initialize();
     void updateVoltage(double voltage);
     void updateTemperature(double temperature, CanBusReceiver::Trend trend);
+    void updateHeaterState(uint8_t state);
     void updateSpinner();
+    void displayMessage(const char *message);
+    void clearDisplay();
 };
 
 #endif

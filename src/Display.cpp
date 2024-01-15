@@ -1,8 +1,8 @@
 #include "Display.h"
 
 const char Display::spinnerChars[] = {1, '/', '-', 0};
-const char Display::arrows[]       = {2, 3};
-uint8_t Display::spinnerIndex      = 0;
+const char Display::arrows[] = {2, 3};
+uint8_t Display::spinnerIndex = 0;
 
 Display::Display(LiquidCrystal_I2C &lcd)
     : lcd(lcd)
@@ -18,7 +18,7 @@ void Display::initialize()
   lcd.createChar(1, customVertical);
   lcd.createChar(2, increase);
   lcd.createChar(3, decrease);
-  lcd.createChar(4, vertical),
+  lcd.createChar(4, vertical);
 
   lcd.setCursor(0, 0);
   lcd.print(" Diesel Heater");
@@ -31,8 +31,6 @@ void Display::initialize()
 
 void Display::updateVoltage(double voltage)
 {
-  lcd.setCursor(7,0);
-  lcd.print((char)4);
   lcd.setCursor(0, 0);
   lcd.print(voltage);
   lcd.print("V");
@@ -40,16 +38,16 @@ void Display::updateVoltage(double voltage)
 
 void Display::updateTemperature(double temperature, CanBusReceiver::Trend trend)
 {
-  lcd.setCursor(7,1);
+  lcd.setCursor(7, 1);
   lcd.print((char)4);
   lcd.setCursor(0, 1);
   lcd.print(temperature);
 
   if (temperature < 100.0 && trend == CanBusReceiver::TREND_EXHAUST_DECREASING)
   {
-   lcd.setCursor(6, 1);
-   lcd.print(" ");
-   lcd.setCursor(5, 1);
+    lcd.setCursor(6, 1);
+    lcd.print(" ");
+    lcd.setCursor(5, 1);
   }
 
   switch (trend)
@@ -66,6 +64,11 @@ void Display::updateTemperature(double temperature, CanBusReceiver::Trend trend)
   }
 }
 
+void Display::updateHeaterState(uint8_t state)
+{
+  displayMessage(stateTitleMap[state]);
+}
+
 void Display::updateSpinner()
 {
   unsigned long currentTime = millis();
@@ -79,3 +82,76 @@ void Display::updateSpinner()
     spinnerTime = currentTime;
   }
 }
+
+void Display::clearDisplay()
+{
+  lcd.setCursor(7, 0);
+  lcd.print("         ");
+}
+
+void Display::displayMessage(const char *message)
+{
+  int messageLength = strlen(message);
+
+  // Check if the new message is different from the previous one
+  if (strcmp(message, previousMessage) != 0)
+  {
+    // Clear the display only when the message has changed
+    clearDisplay();
+
+    // Copy the new message to the previousMessage variable
+    strncpy(previousMessage, message, sizeof(previousMessage) - 1);
+    previousMessage[sizeof(previousMessage) - 1] = '\0';
+  }
+
+  if (messageLength < 9)
+  {
+    // If the message is shorter than 9 characters, display it without scrolling
+    lcd.setCursor(7, 0);
+    lcd.print(message);
+    return;
+  }
+
+  if (millis() - lastUpdateTime >= scrollSpeed)
+  {
+    lcd.setCursor(7, 0);
+    // If the entire message has been displayed, start the hold off timer
+    if (charsWritten >= messageLength)
+    {
+      if (millis() - displayStartTime >= holdOffScrollTime)
+      {
+        displayStartTime = millis();
+        startCharIndex = 0;
+        charsWritten = 0;
+      }
+    }
+    else
+    {
+      for (int j = 0; j < displayLength; ++j)
+      {
+        if (charsWritten >= messageLength)
+        {
+          charsWritten = 0;
+          startCharIndex = 0;
+          clearDisplay();
+          lcd.setCursor(7, 0);
+        }
+
+        int index = (startCharIndex + j) % messageLength;
+        Serial.println(index);
+        lcd.write(message[index]);
+        charsWritten = index + 1;
+      }
+
+      // Reset the displayStartTime after the first loop
+      if (startCharIndex == 1)
+      {
+        displayStartTime = millis();
+      }
+
+      startCharIndex++;
+      lastUpdateTime = millis();
+    }
+  }
+}
+

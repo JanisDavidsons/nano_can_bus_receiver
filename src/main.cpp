@@ -2,6 +2,8 @@
 #include <mcp2515.h>
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
+#include <arduino-timer.h>
+#include <time.h>
 
 #include "CanBusReceiver.h"
 #include "Display.h"
@@ -15,7 +17,12 @@ LiquidCrystal_I2C liquidCrystal_I2C(0x27, 16, 2);
 Display lcd(liquidCrystal_I2C);
 RoomTemperature temperature(dht);
 
+/* timed evenets */
+auto timer = timer_create_default();
+
 const unsigned long stopSpinnerTimeout = 5000; // Stop spinner if no CAN BUS message for 5 seconds
+
+void runTimeCallback();
 
 void setup()
 {
@@ -27,10 +34,12 @@ void setup()
     mcp2515.reset();
     mcp2515.setBitrate(CAN_125KBPS);
     mcp2515.setNormalMode();
+    runTimeCallback();
 }
 
 void loop()
 {
+    timer.tick();
     unsigned long currentTime = millis();
 
     canbus.checkMessage();
@@ -48,15 +57,18 @@ void loop()
         lcd.updateSpinner();
     }
 
-    // Print room temperature every 5 seconds, will be sent to the heate late on.
-    static unsigned long lastTemperaturePrintTime = 0;
-    const unsigned long temperaturePrintInterval = 5000;
+    lcd.updateHeaterState(canbus.getHeaterStateIndex());
+}
 
-    if (currentTime - lastTemperaturePrintTime >= temperaturePrintInterval)
-    {
-        Serial.print("Room temperature: ");
-        Serial.println(temperature.readTemperature());
-
-        lastTemperaturePrintTime = currentTime;
-    }
+void runTimeCallback()
+{
+  timer.every(
+      5000,
+      [](void *) -> bool
+      {
+        // Print room temperature every 5 seconds, will be sent to the heate late on.
+            Serial.print("Room temperature: ");
+            Serial.println(temperature.readTemperature());
+        return true;
+      });
 }

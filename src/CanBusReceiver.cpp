@@ -1,5 +1,3 @@
-// CanBusReceiver.cpp
-
 #include "CanBusReceiver.h"
 
 CanBusReceiver::CanBusReceiver(MCP2515 &mcp2515)
@@ -9,38 +7,41 @@ CanBusReceiver::CanBusReceiver(MCP2515 &mcp2515)
 {
 }
 
-void CanBusReceiver::copyCanMsgToStruct(const struct can_frame &canMsg, struct frameFlameSensor &flameSensorData)
+void CanBusReceiver::copyCanMsgToStruct(const struct can_frame &canMsg, struct frameFlameSensor &frame)
 {
-  flameSensorData.can_id = canMsg.can_id;
-  flameSensorData.can_dlc = canMsg.can_dlc;
+  frame.can_id = canMsg.can_id;
+  frame.can_dlc = canMsg.can_dlc;
 
-  for (int i = 0; i < flameSensorData.can_dlc; ++i)
+  for (int i = 0; i < frame.can_dlc; ++i)
   {
-    flameSensorData.data[i] = canMsg.data[i];
+    frame.data[i] = canMsg.data[i];
   }
 }
 
-void CanBusReceiver::copyCanMsgToStruct(const struct can_frame &canMsg, struct frameVoltageSensor &voltageSensorData)
+void CanBusReceiver::copyCanMsgToStruct(const struct can_frame &canMsg, struct frameVoltageSensor &frame)
 {
-  voltageSensorData.can_id = canMsg.can_id;
-  voltageSensorData.can_dlc = canMsg.can_dlc;
+  frame.can_id = canMsg.can_id;
+  frame.can_dlc = canMsg.can_dlc;
 
-  for (int i = 0; i < voltageSensorData.can_dlc; ++i)
+  for (int i = 0; i < frame.can_dlc; ++i)
   {
-    voltageSensorData.data[i] = canMsg.data[i];
+    frame.data[i] = canMsg.data[i];
+  }
+}
+
+void CanBusReceiver::copyCanMsgToStruct(const struct can_frame &canMsg, struct frameHeaterState &state)
+{
+  state.can_id  = canMsg.can_id;
+  state.can_dlc = canMsg.can_dlc;
+
+  for (int i = 0; i < state.can_dlc; ++i)
+  {
+    state.data[i] = canMsg.data[i];
   }
 }
 
 void CanBusReceiver::processFrameVoltageSensor(frameVoltageSensor &sensorData)
 {
-  // for (size_t i = 0; i < sizeof(sensorData.data); i++)
-  // {
-  //   Serial.print("[");
-  //   Serial.print(sensorData.data[i]);
-  //   Serial.print("]");
-  // }
-  // Serial.println("");
-
   uint16_t reconstructedValue =
       (static_cast<uint8_t>(sensorData.data[0])) |
       (static_cast<uint8_t>(sensorData.data[1]) << 8);
@@ -54,30 +55,16 @@ void CanBusReceiver::processFrameVoltageSensor(frameVoltageSensor &sensorData)
 
   sensorData.temperature = newTemperature;
 
-  // Serial.print("Received message with ID: 0x");
-  // Serial.println(sensorData.can_id, HEX);
-  // Serial.print("Voltage: ");
-  // Serial.println(sensorData.voltage);
-  // Serial.print("Temperature: ");
-  // Serial.println(sensorData.temperature);
-
   if (newVoltage != sensorData.voltage)
   {
     sensorData.voltage = newVoltage;
     voltageChanged = true;
-    lastMessageTime = millis(); // Update last message time
+    lastMessageTime = millis();
   }
 }
 
 void CanBusReceiver::processFrameFlameSensor(frameFlameSensor &sensorData)
 {
-  // for (int i = 0; i < sensorData.can_dlc; ++i)
-  // {
-  //   Serial.print(sensorData.data[i]);
-  //   Serial.print(' ');
-  // }
-  // Serial.println();
-
   int16_t reconstructedTemperature =
       (sensorData.data[0]) |
       (sensorData.data[1] << 8);
@@ -89,6 +76,11 @@ void CanBusReceiver::processFrameFlameSensor(frameFlameSensor &sensorData)
   sensorData.isDecreasing = static_cast<bool>(sensorData.data[3]);
 
   setTrend(sensorData);
+}
+
+void CanBusReceiver::processFrameHeaterState(frameHeaterState &stateData)
+{
+  stateData.state = stateData.data[0];
 }
 
 void CanBusReceiver::checkMessage()
@@ -113,6 +105,18 @@ void CanBusReceiver::checkMessage()
       {
         copyCanMsgToStruct(canMsg, voltageSensor);
         processFrameVoltageSensor(voltageSensor);
+      }
+      else
+      {
+        Serial.println("Error: Size mismatch in received 0x101 message");
+      }
+    }
+    else if (canMsg.can_id == 0x102)
+    {
+      if (canMsg.can_dlc == sizeof(heaterState.data))
+      {
+        copyCanMsgToStruct(canMsg, heaterState);
+        processFrameHeaterState(heaterState);
       }
       else
       {
@@ -178,4 +182,9 @@ void CanBusReceiver::setTrend(frameFlameSensor &sensor)
 CanBusReceiver::Trend CanBusReceiver::getTExhaustTrend()
 {
   return trendExhaust;
+}
+
+uint8_t CanBusReceiver::getHeaterStateIndex()
+{
+  return heaterState.state;
 }
