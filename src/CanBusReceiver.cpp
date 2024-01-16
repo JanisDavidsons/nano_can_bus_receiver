@@ -67,10 +67,6 @@ void CanBusReceiver::processFrameHeaterTemperature(frameTemperature &tempData)
 
   tempData.coolant = static_cast<double>(reconstructedCoolantTmp) / 100;
   tempData.surface = static_cast<double>(reconstructedSurfaceTmp) / 100;
-
-  Serial.print(tempData.coolant);
-  Serial.print("=>");
-  Serial.println(tempData.surface);
 }
 
 void CanBusReceiver::checkMessage()
@@ -110,7 +106,7 @@ void CanBusReceiver::checkMessage()
       }
       else
       {
-        Serial.println("Error: Size mismatch in received 0x101 message");
+        Serial.println("Error: Size mismatch in received 0x102 message");
       }
     }
     else if (canMsg.can_id == 0x103)
