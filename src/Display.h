@@ -21,7 +21,7 @@ private:
     int startCharIndex = 0;
     int charsWritten = 0;
     int displayLength = 9; // Number of characters to display at a time
-    uint16_t holdOffScrollTime = 3000;   // Time to hold the message in milliseconds
+    uint16_t holdOffScrollTime = 2000;   // Time to hold the message in milliseconds
 
     char previousMessage[20] = "";
 
@@ -89,10 +89,10 @@ public:
     Display(LiquidCrystal_I2C &lcd);
     void initialize();
     void updateVoltage(double voltage);
-    void updateTemperature(double temperature, CanBusReceiver::Trend trend);
+    void updateFlameTmp(double temperature, CanBusReceiver::Trend trend);
     void updateHeaterState(uint8_t state);
+    void updateHeaterTemperature(double coolant, double surface);
     void updateSpinner();
-    void displayMessage(const char *message);
     void clearDisplay();
 };
 

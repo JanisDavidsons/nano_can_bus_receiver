@@ -36,8 +36,7 @@ private:
   {
     uint32_t can_id;
     uint8_t can_dlc;
-    uint8_t data[4];
-    double temperature = 0;
+    uint8_t data[2];
     double voltage = 0;
   } voltageSensor;
 
@@ -48,6 +47,15 @@ private:
     uint8_t data[1];
     uint8_t state = 0;
   } heaterState;
+
+  struct frameTemperature
+  {
+    uint32_t can_id;
+    uint8_t can_dlc;
+    uint8_t data[4];
+    double coolant = 0;
+    double surface = 0;
+  } heaterTemperature;
 
   void setTrend(frameFlameSensor &sensor);
 
@@ -61,17 +69,21 @@ public:
   double getExhaustTemp() const;
   double getVoltage() const;
   uint8_t getHeaterStateIndex();
-  void copyCanMsgToStruct(const struct can_frame &canMsg, struct frameFlameSensor &frame);
-  void copyCanMsgToStruct(const struct can_frame &canMsg, struct frameVoltageSensor &frame);
-  void copyCanMsgToStruct(const struct can_frame &canMsg, struct frameHeaterState &state);
-  void processFrameVoltageSensor(frameVoltageSensor &sensorData);
-  void processFrameFlameSensor(frameFlameSensor &sensorData);
-  void processFrameHeaterState(frameHeaterState &stateData);
   void checkMessage();
   unsigned long getLatMessageTime();
   bool isExhaustTempIncreasing();
   bool isExhaustTempDecreasing();
   Trend getTExhaustTrend();
+  double getCoolantTmp();
+  double getSurfaceTmp();
+
+  template <typename T>
+  void copyCanMsgToStruct(const struct can_frame &canMsg, T &frame);
+
+  void processFrameVoltageSensor(frameVoltageSensor &voltageData);
+  void processFrameFlameSensor(frameFlameSensor &flameData);
+  void processFrameHeaterState(frameHeaterState &stateData);
+  void processFrameHeaterTemperature(frameTemperature &temperatureData);
 };
 
 #endif

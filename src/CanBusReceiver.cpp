@@ -7,7 +7,8 @@ CanBusReceiver::CanBusReceiver(MCP2515 &mcp2515)
 {
 }
 
-void CanBusReceiver::copyCanMsgToStruct(const struct can_frame &canMsg, struct frameFlameSensor &frame)
+template <typename T>
+void CanBusReceiver::copyCanMsgToStruct(const struct can_frame &canMsg, T &frame)
 {
   frame.can_id = canMsg.can_id;
   frame.can_dlc = canMsg.can_dlc;
@@ -18,69 +19,58 @@ void CanBusReceiver::copyCanMsgToStruct(const struct can_frame &canMsg, struct f
   }
 }
 
-void CanBusReceiver::copyCanMsgToStruct(const struct can_frame &canMsg, struct frameVoltageSensor &frame)
-{
-  frame.can_id = canMsg.can_id;
-  frame.can_dlc = canMsg.can_dlc;
-
-  for (int i = 0; i < frame.can_dlc; ++i)
-  {
-    frame.data[i] = canMsg.data[i];
-  }
-}
-
-void CanBusReceiver::copyCanMsgToStruct(const struct can_frame &canMsg, struct frameHeaterState &state)
-{
-  state.can_id  = canMsg.can_id;
-  state.can_dlc = canMsg.can_dlc;
-
-  for (int i = 0; i < state.can_dlc; ++i)
-  {
-    state.data[i] = canMsg.data[i];
-  }
-}
-
-void CanBusReceiver::processFrameVoltageSensor(frameVoltageSensor &sensorData)
+void CanBusReceiver::processFrameVoltageSensor(frameVoltageSensor &voltageData)
 {
   uint16_t reconstructedValue =
-      (static_cast<uint8_t>(sensorData.data[0])) |
-      (static_cast<uint8_t>(sensorData.data[1]) << 8);
+      (static_cast<uint8_t>(voltageData.data[0])) |
+      (static_cast<uint8_t>(voltageData.data[1]) << 8);
 
-  int16_t reconstructedTemperature =
-      (static_cast<int8_t>(sensorData.data[2])) |
-      (static_cast<int8_t>(sensorData.data[3]) << 8);
-
-  double newTemperature = static_cast<double>(reconstructedTemperature) / 100;
   double newVoltage = static_cast<double>(reconstructedValue) / 100;
 
-  sensorData.temperature = newTemperature;
-
-  if (newVoltage != sensorData.voltage)
+  if (newVoltage != voltageData.voltage)
   {
-    sensorData.voltage = newVoltage;
+    voltageData.voltage = newVoltage;
     voltageChanged = true;
     lastMessageTime = millis();
   }
 }
 
-void CanBusReceiver::processFrameFlameSensor(frameFlameSensor &sensorData)
+void CanBusReceiver::processFrameFlameSensor(frameFlameSensor &flameData)
 {
   int16_t reconstructedTemperature =
-      (sensorData.data[0]) |
-      (sensorData.data[1] << 8);
+      (flameData.data[0]) |
+      (flameData.data[1] << 8);
 
   double newTemperature = static_cast<double>(reconstructedTemperature) / 100;
 
-  sensorData.value = newTemperature;
-  sensorData.isIncreasing = static_cast<bool>(sensorData.data[2]);
-  sensorData.isDecreasing = static_cast<bool>(sensorData.data[3]);
+  flameData.value = newTemperature;
+  flameData.isIncreasing = static_cast<bool>(flameData.data[2]);
+  flameData.isDecreasing = static_cast<bool>(flameData.data[3]);
 
-  setTrend(sensorData);
+  setTrend(flameData);
 }
 
 void CanBusReceiver::processFrameHeaterState(frameHeaterState &stateData)
 {
   stateData.state = stateData.data[0];
+}
+
+void CanBusReceiver::processFrameHeaterTemperature(frameTemperature &tempData)
+{
+  int16_t reconstructedCoolantTmp =
+      (tempData.data[0]) |
+      (tempData.data[1] << 8);
+
+  int16_t reconstructedSurfaceTmp =
+      (tempData.data[2]) |
+      (tempData.data[3] << 8);
+
+  tempData.coolant = static_cast<double>(reconstructedCoolantTmp) / 100;
+  tempData.surface = static_cast<double>(reconstructedSurfaceTmp) / 100;
+
+  Serial.print(tempData.coolant);
+  Serial.print("=>");
+  Serial.println(tempData.surface);
 }
 
 void CanBusReceiver::checkMessage()
@@ -123,6 +113,18 @@ void CanBusReceiver::checkMessage()
         Serial.println("Error: Size mismatch in received 0x101 message");
       }
     }
+    else if (canMsg.can_id == 0x103)
+    {
+      if (canMsg.can_dlc == sizeof(heaterTemperature.data))
+      {
+        copyCanMsgToStruct(canMsg, heaterTemperature);
+        processFrameHeaterTemperature(heaterTemperature);
+      }
+      else
+      {
+        Serial.println("Error: Size mismatch in received 0x103 message");
+      }
+    }
 
     lastMessageTime = millis();
   }
@@ -141,11 +143,6 @@ double CanBusReceiver::getExhaustTemp() const
 const struct can_frame &CanBusReceiver::getCanMsg() const
 {
   return canMsg;
-}
-
-double CanBusReceiver::getTemperature() const
-{
-  return voltageSensor.temperature;
 }
 
 bool CanBusReceiver::isExhaustTempIncreasing()
@@ -187,4 +184,14 @@ CanBusReceiver::Trend CanBusReceiver::getTExhaustTrend()
 uint8_t CanBusReceiver::getHeaterStateIndex()
 {
   return heaterState.state;
+}
+
+double CanBusReceiver::getCoolantTmp()
+{
+  return heaterTemperature.coolant;
+}
+
+double CanBusReceiver::getSurfaceTmp()
+{
+  return heaterTemperature.surface;
 }

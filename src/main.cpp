@@ -50,7 +50,8 @@ void loop()
         canbus.voltageChanged = false;
     }
 
-    lcd.updateTemperature(canbus.getExhaustTemp(), canbus.getTExhaustTrend());
+    lcd.updateFlameTmp(canbus.getExhaustTemp(), canbus.getTExhaustTrend());
+    lcd.updateHeaterTemperature(canbus.getCoolantTmp(), canbus.getSurfaceTmp());
 
     if (currentTime - canbus.getLatMessageTime() < stopSpinnerTimeout)
     {

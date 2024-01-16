@@ -29,17 +29,8 @@ void Display::initialize()
   lcd.clear();
 }
 
-void Display::updateVoltage(double voltage)
+void Display::updateFlameTmp(double temperature, CanBusReceiver::Trend trend)
 {
-  lcd.setCursor(0, 0);
-  lcd.print(voltage);
-  lcd.print("V");
-}
-
-void Display::updateTemperature(double temperature, CanBusReceiver::Trend trend)
-{
-  lcd.setCursor(7, 1);
-  lcd.print((char)4);
   lcd.setCursor(0, 1);
   lcd.print(temperature);
 
@@ -66,31 +57,7 @@ void Display::updateTemperature(double temperature, CanBusReceiver::Trend trend)
 
 void Display::updateHeaterState(uint8_t state)
 {
-  displayMessage(stateTitleMap[state]);
-}
-
-void Display::updateSpinner()
-{
-  unsigned long currentTime = millis();
-
-  if (currentTime - spinnerTime >= spinnerInterval)
-  {
-    lcd.setCursor(15, 1);
-    lcd.print(spinnerChars[spinnerIndex]);
-    spinnerIndex = (spinnerIndex + 1) % (sizeof(spinnerChars) / sizeof(spinnerChars[0]));
-
-    spinnerTime = currentTime;
-  }
-}
-
-void Display::clearDisplay()
-{
-  lcd.setCursor(7, 0);
-  lcd.print("         ");
-}
-
-void Display::displayMessage(const char *message)
-{
+  const char *message = stateTitleMap[state];
   int messageLength = strlen(message);
 
   // Check if the new message is different from the previous one
@@ -153,5 +120,40 @@ void Display::displayMessage(const char *message)
       lastUpdateTime = millis();
     }
   }
+}
+
+void Display::updateSpinner()
+{
+  unsigned long currentTime = millis();
+
+  if (currentTime - spinnerTime >= spinnerInterval)
+  {
+    lcd.setCursor(15, 1);
+    lcd.print(spinnerChars[spinnerIndex]);
+    spinnerIndex = (spinnerIndex + 1) % (sizeof(spinnerChars) / sizeof(spinnerChars[0]));
+
+    spinnerTime = currentTime;
+  }
+}
+
+void Display::updateVoltage(double voltage)
+{
+  lcd.setCursor(0, 0);
+  lcd.print(voltage);
+  lcd.print("V");
+}
+
+void Display::updateHeaterTemperature(double coolant, double surface)
+{
+  lcd.setCursor(7, 1);
+  lcd.print(coolant);
+  // lcd.setCursor(13, 1);
+  // lcd.print(surface);
+}
+
+void Display::clearDisplay()
+{
+  lcd.setCursor(7, 0);
+  lcd.print("         ");
 }
 
