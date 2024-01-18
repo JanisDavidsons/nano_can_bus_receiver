@@ -15,13 +15,14 @@ private:
     static const char arrows[];
     char currentMessage[15]; // Maximum length of the message
     bool messageWritten = false;
+    bool scrolledRight = false;
     uint64_t scrollSpeed = 500;
     unsigned long lastUpdateTime = 0;
     unsigned long displayStartTime = 0;
     int startCharIndex = 0;
     int charsWritten = 0;
-    int displayLength = 9; // Number of characters to display at a time
-    uint16_t holdOffScrollTime = 2000;   // Time to hold the message in milliseconds
+    int displayLength = 9;             // Number of characters to display at a time
+    uint16_t holdOffScrollTime = 2000; // Time to hold the message in milliseconds
 
     char previousMessage[20] = "";
 
@@ -75,6 +76,16 @@ private:
         B00100,
         B00000};
 
+    byte noChange[8] = {
+        B00100,
+        B01110,
+        B10101,
+        B00100,
+        B10101,
+        B01110,
+        B00100,
+        B00000};
+
     byte vertical[8] = {
         B00100,
         B00100,
@@ -94,6 +105,9 @@ public:
     void updateHeaterTemperature(double coolant, double surface);
     void updateSpinner();
     void clearDisplay();
+    void scrollRight();
+    void returnHome();
+    void shiftRight();
 };
 
 #endif

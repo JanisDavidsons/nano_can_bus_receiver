@@ -9,6 +9,9 @@
 #include "Display.h"
 #include "RoomTemperature.h"
 
+uint8_t buttonPin = 4;
+int buttonState = 0;
+
 MCP2515 mcp2515(10);
 CanBusReceiver canbus(mcp2515);
 DHT_Unified dht(DHTPIN, DHTTYPE);
@@ -17,15 +20,21 @@ LiquidCrystal_I2C liquidCrystal_I2C(0x27, 16, 2);
 Display lcd(liquidCrystal_I2C);
 RoomTemperature temperature(dht);
 
-/* timed evenets */
+/* timed events */
 auto timer = timer_create_default();
 
 const unsigned long stopSpinnerTimeout = 5000; // Stop spinner if no CAN BUS message for 5 seconds
+const int debounceDelay = 50;                 
+unsigned long lastDebounceTime = 0;
+int lastButtonState = HIGH;
 
 void runTimeCallback();
+void handleButton();
 
 void setup()
 {
+    pinMode(buttonPin, INPUT_PULLUP);
+
     Serial.begin(9600);
 
     lcd.initialize();
@@ -59,17 +68,46 @@ void loop()
     }
 
     lcd.updateHeaterState(canbus.getHeaterStateIndex());
+
+    handleButton();
 }
 
 void runTimeCallback()
 {
-  timer.every(
-      5000,
-      [](void *) -> bool
-      {
-        // Print room temperature every 5 seconds, will be sent to the heate late on.
+    timer.every(
+        15000,
+        [](void *) -> bool
+        {
+            // Print room temperature every 5 seconds, will be sent to the heater later on.
             Serial.print("Room temperature: ");
             Serial.println(temperature.readTemperature());
-        return true;
-      });
+
+            lcd.returnHome();
+
+            return true;
+        });
+}
+
+void handleButton()
+{
+    int reading = digitalRead(buttonPin);
+
+    if (reading != lastButtonState)
+    {
+        lastDebounceTime = millis();
+        lastButtonState = reading;
+    }
+
+    if ((millis() - lastDebounceTime) > debounceDelay)
+    {
+        if (reading != buttonState)
+        {
+            buttonState = reading;
+
+            if (buttonState == LOW)
+            {
+                lcd.scrollRight();
+            }
+        }
+    }
 }

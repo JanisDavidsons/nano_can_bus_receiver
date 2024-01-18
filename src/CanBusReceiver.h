@@ -27,7 +27,7 @@ private:
     uint32_t can_id;
     uint8_t can_dlc;
     uint8_t data[4];
-    double value = 0;
+    double value = 0.0;
     bool isIncreasing = false;
     bool isDecreasing = false;
   } exhaustTemperature;
@@ -37,7 +37,7 @@ private:
     uint32_t can_id;
     uint8_t can_dlc;
     uint8_t data[2];
-    double voltage = 0;
+    double voltage = 0.0;
   } voltageSensor;
 
   struct frameHeaterState
@@ -53,8 +53,8 @@ private:
     uint32_t can_id;
     uint8_t can_dlc;
     uint8_t data[4];
-    double coolant = 0;
-    double surface = 0;
+    double coolant = 0.0;
+    double surface = 0.0;
   } heaterTemperature;
 
   void setTrend(frameFlameSensor &sensor);

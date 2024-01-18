@@ -41,7 +41,10 @@ void CanBusReceiver::processFrameFlameSensor(frameFlameSensor &flameData)
       (flameData.data[0]) |
       (flameData.data[1] << 8);
 
-  double newTemperature = static_cast<double>(reconstructedTemperature) / 100;
+  double newTemperature = round(static_cast<double>(reconstructedTemperature) / 10);
+
+  // tempData.surface = round(static_cast<double>(reconstructedSurfaceTmp) / 10);
+
 
   flameData.value = newTemperature;
   flameData.isIncreasing = static_cast<bool>(flameData.data[2]);
@@ -65,8 +68,9 @@ void CanBusReceiver::processFrameHeaterTemperature(frameTemperature &tempData)
       (tempData.data[2]) |
       (tempData.data[3] << 8);
 
-  tempData.coolant = static_cast<double>(reconstructedCoolantTmp) / 100;
-  tempData.surface = static_cast<double>(reconstructedSurfaceTmp) / 100;
+  tempData.coolant = 25.2;
+  tempData.coolant = static_cast<double>(reconstructedCoolantTmp) / 10;
+  tempData.surface = static_cast<double>(reconstructedSurfaceTmp) / 10;
 }
 
 void CanBusReceiver::checkMessage()

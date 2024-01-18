@@ -1,7 +1,7 @@
 #include "Display.h"
 
 const char Display::spinnerChars[] = {1, '/', '-', 0};
-const char Display::arrows[] = {2, 3};
+const char Display::arrows[] = {2, 3, 4};
 uint8_t Display::spinnerIndex = 0;
 
 Display::Display(LiquidCrystal_I2C &lcd)
@@ -18,7 +18,7 @@ void Display::initialize()
   lcd.createChar(1, customVertical);
   lcd.createChar(2, increase);
   lcd.createChar(3, decrease);
-  lcd.createChar(4, vertical);
+  lcd.createChar(4, noChange);
 
   lcd.setCursor(0, 0);
   lcd.print(" Diesel Heater");
@@ -32,13 +32,13 @@ void Display::initialize()
 void Display::updateFlameTmp(double temperature, CanBusReceiver::Trend trend)
 {
   lcd.setCursor(0, 1);
-  lcd.print(temperature);
+  lcd.print(String(temperature,0));
 
-  if (temperature < 100.0 && trend == CanBusReceiver::TREND_EXHAUST_DECREASING)
+  if (temperature < 100 && trend == CanBusReceiver::TREND_EXHAUST_DECREASING)
   {
-    lcd.setCursor(6, 1);
+    lcd.setCursor(4, 1);
     lcd.print(" ");
-    lcd.setCursor(5, 1);
+    lcd.setCursor(3, 1);
   }
 
   switch (trend)
@@ -50,7 +50,7 @@ void Display::updateFlameTmp(double temperature, CanBusReceiver::Trend trend)
     lcd.print(arrows[1]);
     break;
   default:
-    lcd.print(" ");
+    lcd.print(arrows[2]);
     break;
   }
 }
@@ -145,10 +145,10 @@ void Display::updateVoltage(double voltage)
 
 void Display::updateHeaterTemperature(double coolant, double surface)
 {
-  lcd.setCursor(7, 1);
-  lcd.print(coolant);
-  // lcd.setCursor(13, 1);
-  // lcd.print(surface);
+  lcd.setCursor(5, 1);
+  lcd.print(String(coolant, 1));
+  lcd.setCursor(10, 1);
+  lcd.print(String(surface, 1));
 }
 
 void Display::clearDisplay()
@@ -157,3 +157,32 @@ void Display::clearDisplay()
   lcd.print("         ");
 }
 
+void Display::scrollRight()
+{
+  if (!scrolledRight)
+  {
+    for (size_t i = 0; i < 16; i++)
+    {
+      lcd.scrollDisplayRight();
+    }
+    scrolledRight = true;
+  }
+  else
+  {
+    for (size_t i = 0; i < 16; i++)
+    {
+      lcd.scrollDisplayLeft();
+    }
+    scrolledRight = false;
+  }
+}
+
+void Display::returnHome()
+{
+  lcd.home();
+  scrolledRight = false;
+}
+
+void Display::shiftRight()
+{
+}
