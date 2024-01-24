@@ -44,8 +44,9 @@ private:
   {
     uint32_t can_id;
     uint8_t can_dlc;
-    uint8_t data[1];
+    uint8_t data[2];
     uint8_t state = 0;
+    uint8_t mode = 0;
   } heaterState;
 
   struct frameTemperature
@@ -69,6 +70,7 @@ public:
   double getExhaustTemp() const;
   double getVoltage() const;
   uint8_t getHeaterStateIndex();
+  uint8_t getHeaterModeIndex();
   void checkMessage();
   unsigned long getLatMessageTime();
   bool isExhaustTempIncreasing();

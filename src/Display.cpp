@@ -32,43 +32,39 @@ void Display::initialize()
 void Display::updateFlameTmp(double temperature, CanBusReceiver::Trend trend)
 {
   lcd.setCursor(0, 1);
-  lcd.print(String(temperature,0));
+  lcd.print(String(temperature, 0));
+  printTrend(trend);
+  lcd.setCursor(16, 1);
+  lcd.print(String(temperature, 0));
+  printTrend(trend);
 
   if (temperature < 100 && trend == CanBusReceiver::TREND_EXHAUST_DECREASING)
   {
-    lcd.setCursor(4, 1);
-    lcd.print(" ");
     lcd.setCursor(3, 1);
-  }
+    lcd.print(" ");
+    lcd.setCursor(2, 1);
 
-  switch (trend)
-  {
-  case CanBusReceiver::TREND_EXHAUST_RISING:
-    lcd.print(arrows[0]);
-    break;
-  case CanBusReceiver::TREND_EXHAUST_DECREASING:
-    lcd.print(arrows[1]);
-    break;
-  default:
-    lcd.print(arrows[2]);
-    break;
+    lcd.setCursor(19, 1);
+    lcd.print(" ");
+    lcd.setCursor(18, 1);
   }
 }
 
 void Display::updateHeaterState(uint8_t state)
 {
+  if (holdOffTimerStarted && (millis() - displayStartTime <= holdOffScrollTime))
+  {
+    return;
+  }
+  holdOffTimerStarted = false;
+
   const char *message = stateTitleMap[state];
   int messageLength = strlen(message);
 
-  // Check if the new message is different from the previous one
-  if (strcmp(message, previousMessage) != 0)
+  if (state != previousState )
   {
-    // Clear the display only when the message has changed
     clearDisplay();
-
-    // Copy the new message to the previousMessage variable
-    strncpy(previousMessage, message, sizeof(previousMessage) - 1);
-    previousMessage[sizeof(previousMessage) - 1] = '\0';
+    previousState = state;
   }
 
   if (messageLength < 9)
@@ -85,6 +81,7 @@ void Display::updateHeaterState(uint8_t state)
     // If the entire message has been displayed, start the hold off timer
     if (charsWritten >= messageLength)
     {
+      holdOffTimerStarted = true;
       if (millis() - displayStartTime >= holdOffScrollTime)
       {
         displayStartTime = millis();
@@ -105,20 +102,33 @@ void Display::updateHeaterState(uint8_t state)
         }
 
         int index = (startCharIndex + j) % messageLength;
-        Serial.println(index);
+
         lcd.write(message[index]);
         charsWritten = index + 1;
       }
 
-      // Reset the displayStartTime after the first loop
-      if (startCharIndex == 1)
+      // If the first part of the message has been displayed, start the hold off timer
+      if (startCharIndex == 0)
       {
+        holdOffTimerStarted = true;
         displayStartTime = millis();
       }
 
       startCharIndex++;
       lastUpdateTime = millis();
     }
+  }
+}
+
+void Display::updateHeaterMode(uint8_t mode)
+{
+  if (mode != previousMode)
+  {
+    lcd.setCursor(16, 0);
+    lcd.print("                ");
+    lcd.setCursor(16, 0);
+    lcd.print(operationMap[mode]);
+    previousMode = mode;
   }
 }
 
@@ -157,32 +167,45 @@ void Display::clearDisplay()
   lcd.print("         ");
 }
 
-void Display::scrollRight()
+void Display::scroll()
 {
-  if (!scrolledRight)
-  {
-    for (size_t i = 0; i < 16; i++)
-    {
-      lcd.scrollDisplayRight();
-    }
-    scrolledRight = true;
-  }
-  else
+  // lcd.scrollDisplayLeft();
+  if (!scrolledLeft)
   {
     for (size_t i = 0; i < 16; i++)
     {
       lcd.scrollDisplayLeft();
     }
-    scrolledRight = false;
+    scrolledLeft = true;
+  }
+  else
+  {
+    for (size_t i = 0; i < 16; i++)
+    {
+      lcd.scrollDisplayRight();
+    }
+    scrolledLeft = false;
   }
 }
 
 void Display::returnHome()
 {
   lcd.home();
-  scrolledRight = false;
+  scrolledLeft = false;
 }
 
-void Display::shiftRight()
+void Display::printTrend(CanBusReceiver::Trend trend)
 {
+  switch (trend)
+  {
+  case CanBusReceiver::TREND_EXHAUST_RISING:
+    lcd.print(arrows[0]);
+    break;
+  case CanBusReceiver::TREND_EXHAUST_DECREASING:
+    lcd.print(arrows[1]);
+    break;
+  default:
+    lcd.print(arrows[2]);
+    break;
+  }
 }

@@ -11,7 +11,7 @@ class RoomTemperature
 {
 private:
   DHT_Unified &dht;
-  double roomTemp;
+  double roomTemp = 0.0;
   sensor_t sensor;
 
 public:

@@ -45,7 +45,6 @@ void CanBusReceiver::processFrameFlameSensor(frameFlameSensor &flameData)
 
   // tempData.surface = round(static_cast<double>(reconstructedSurfaceTmp) / 10);
 
-
   flameData.value = newTemperature;
   flameData.isIncreasing = static_cast<bool>(flameData.data[2]);
   flameData.isDecreasing = static_cast<bool>(flameData.data[3]);
@@ -56,6 +55,7 @@ void CanBusReceiver::processFrameFlameSensor(frameFlameSensor &flameData)
 void CanBusReceiver::processFrameHeaterState(frameHeaterState &stateData)
 {
   stateData.state = stateData.data[0];
+  stateData.mode  = stateData.data[1];
 }
 
 void CanBusReceiver::processFrameHeaterTemperature(frameTemperature &tempData)
@@ -125,7 +125,6 @@ void CanBusReceiver::checkMessage()
         Serial.println("Error: Size mismatch in received 0x103 message");
       }
     }
-
     lastMessageTime = millis();
   }
 }
@@ -184,6 +183,11 @@ CanBusReceiver::Trend CanBusReceiver::getTExhaustTrend()
 uint8_t CanBusReceiver::getHeaterStateIndex()
 {
   return heaterState.state;
+}
+
+uint8_t CanBusReceiver::getHeaterModeIndex()
+{
+  return heaterState.mode;
 }
 
 double CanBusReceiver::getCoolantTmp()
